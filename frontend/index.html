@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple CRUD App</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 750px;
+      margin: 40px auto;
+      padding: 15px;
+      background: #f4f6f8;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px 0;
+    }
+
+    .form {
+      display: grid;
+      gap: 8px;
+    }
+
+    .record {
+      background: white;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 6px;
+    }
+
+    #message {
+      margin: 12px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Student Records</h1>
+
+  <h3>Add a record</h3>
+  <div class="form">
+    <input id="name" placeholder="Student name">
+    <input id="email" type="email" placeholder="Student email">
+    <button onclick="addRecord()">Save Record</button>
+  </div>
+
+  <h3>Search records</h3>
+  <input id="search" placeholder="Search by name or email">
+  <button onclick="loadRecords()">Search</button>
+  <button onclick="clearSearch()">Show All</button>
+
+  <p id="message"></p>
+  <div id="records"></div>
+
+<script>
+const api = "/api/records";
+
+async function request(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Request failed");
+  }
+
+  return data;
+}
+
+function showMessage(text) {
+  document.getElementById("message").textContent = text;
+}
+
+async function addRecord() {
+  try {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+
+    await request(api, {
+      method: "POST",
+      body: JSON.stringify({ name, email })
+    });
+
+    document.getElementById("name").value = "";
+    document.getElementById("email").value = "";
+
+    showMessage("Record added successfully");
+    await loadRecords();
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
+async function loadRecords() {
+  try {
+    const search =
+      document.getElementById("search").value.trim();
+
+    const data = await request(
+      api + "?search=" + encodeURIComponent(search)
+    );
+
+    const container = document.getElementById("records");
+    container.replaceChildren();
+
+    if (data.length === 0) {
+      container.textContent = "No records found.";
+      return;
+    }
+
+    data.forEach(record => {
+      const card = document.createElement("div");
+      card.className = "record";
+
+      const details = document.createElement("p");
+      details.textContent =
+        `ID: ${record.id} | Name: ${record.name} | Email: ${record.email}`;
+
+      const edit = document.createElement("button");
+      edit.textContent = "Edit";
+      edit.onclick = () => updateRecord(record);
+
+      const remove = document.createElement("button");
+      remove.textContent = "Delete";
+      remove.onclick = () => deleteRecord(record.id);
+
+      card.append(details, edit, remove);
+      container.appendChild(card);
+    });
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
+async function updateRecord(record) {
+  const name = prompt("Enter new name:", record.name);
+  if (name === null) return;
+
+  const email = prompt("Enter new email:", record.email);
+  if (email === null) return;
+
+  try {
+    await request(api + "/" + record.id, {
+      method: "PUT",
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email.trim()
+      })
+    });
+
+    showMessage("Record updated");
+    await loadRecords();
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
+async function deleteRecord(id) {
+  if (!confirm("Delete this record?")) return;
+
+  try {
+    await request(api + "/" + id, {
+      method: "DELETE"
+    });
+
+    showMessage("Record deleted");
+    await loadRecords();
+  } catch (error) {
+    showMessage(error.message);
+  }
+}
+
+function clearSearch() {
+  document.getElementById("search").value = "";
+  loadRecords();
+}
+
+loadRecords();
+</script>
+</body>
+</html>
