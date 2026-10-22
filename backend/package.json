@@ -1,5 +1,5 @@
 {
-  "name": "simple-crud-backend",
+  "name": "student-crud",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -8,6 +8,5 @@
   "dependencies": {
     "express": "^4.21.2",
     "mongodb": "^6.17.0"
-
   }
 }
